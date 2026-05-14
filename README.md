@@ -4,8 +4,6 @@
 
 > Complete secure setup guide for integrating Google Maps API Key in a Flutter app (Android & iOS)
 
-📄 Official Docs: [developers.google.com/maps/flutter-package](https://developers.google.com/maps/documentation/javascript/get-api-key)
-
 </div>
 
 ---
