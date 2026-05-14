@@ -1,345 +1,203 @@
-# 🔐 Google Maps API Key — Secure Setup Guide
+<div align="center">
+🗺️ Google Maps API Key — Secure Setup Guide
+Zero hardcoded keys. Zero secrets in Git. Production-ready.
 
-> Securely load your Google Maps API key in a Flutter project  
-> using `.env` (Android) and Xcode Build Settings (iOS)  
-> without hardcoding secrets anywhere in source code.
+</div>
 
----
+⚠️ The Problem
+Never hardcode your API key. Here's why every location is risky:
+FileRiskandroid/app/src/main/AndroidManifest.xml🔴 Exposed after APK decompileandroid/app/build.gradle.kts🔴 Exposed in source codeios/Runner/Info.plist🔴 Exposed in IPA inspectionios/Runner/AppDelegate.swift🔴 Exposed in source code
 
-# ✨ Why This Setup?
+🔐 The Secure Chain
+ANDROID
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+.env (git-ignored) → build.gradle.kts → AndroidManifest.xml → Runtime
 
-Hardcoding API keys is unsafe.
+iOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Xcode Build Settings (never committed) → Info.plist → AppDelegate.swift → Runtime
 
-| File | Risk |
-|------|------|
-| `AndroidManifest.xml` | Exposed after APK decompile |
-| `build.gradle.kts` | Exposed in source |
-| `Info.plist` | Exposed in IPA inspection |
-| `AppDelegate.swift` | Exposed in source |
+📋 Table of Contents
 
-This setup keeps your key out of GitHub and source code.
+Step 1 — .env File
+Step 2 — Android: build.gradle.kts
+Step 3 — Android: AndroidManifest.xml
+Step 4 — iOS: Xcode Build Settings
+Step 5 — iOS: Info.plist
+Step 6 — iOS: AppDelegate.swift
+Step 7 — CI/CD: GitHub Actions
+Step 8 — Verify
+Key Flow Reference
 
----
 
-# 🔄 Secure Key Flow
-
-## 🤖 Android
-
-```text
-.env (gitignored)
-        ↓
-build.gradle.kts
-        ↓
-AndroidManifest.xml
-        ↓
-Google Maps SDK Runtime
-```
-
----
-
-## 🍎 iOS
-
-```text
-Xcode Build Settings
-        ↓
-Info.plist
-        ↓
-AppDelegate.swift
-        ↓
-Google Maps SDK Runtime
-```
-
----
-
-# 📦 Step 1 — Create `.env`
-
-Create a `.env` file in the project root:
-
-```env
-GOOGLE_MAPS_SDK_KEY=AIzaSy..........................
-```
-
-Add this to `.gitignore`:
-
-```gitignore
+Step 1 — .env File (Project Root)
+Create a .env file at your project root with this exact key name:
+envGOOGLE_MAPS_SDK_KEY=AIzaSy..........................
+Then make sure it's git-ignored:
+gitignore# .gitignore
 .env
 android/local.properties
 android/key.properties
-```
 
----
+🛡️ This file never leaves your machine.
 
-# 🤖 Android Setup
 
-## 📁 `android/app/build.gradle.kts`
-
-```kotlin
+Step 2 — Android: android/app/build.gradle.kts
+Your build.gradle.kts already has the correct setup — no changes needed.
+kotlin// Befor Section android {----} 
 val envProperties = Properties()
 val envFile = rootProject.file("../.env")
-
 if (envFile.exists()) {
     envProperties.load(FileInputStream(envFile))
 }
 
 defaultConfig {
     manifestPlaceholders["GOOGLE_MAPS_SDK_KEY"] =
-        envProperties.getProperty("GOOGLE_MAPS_SDK_KEY")
-            ?: System.getenv("GOOGLE_MAPS_SDK_KEY")
-            ?: ""
+        envProperties.getProperty("GOOGLE_MAPS_SDK_KEY") 
+        ?: System.getenv("GOOGLE_MAPS_SDK_KEY")        
+        ?: ""                                           
 }
-```
 
----
-
-## 📄 `AndroidManifest.xml`
-
-❌ Remove:
-
-```xml
+Step 3 — Android: AndroidManifest.xml
+Replace the hardcoded key with the placeholder variable:
+xml<!-- ❌ REMOVE this -->
 <meta-data
     android:name="com.google.android.geo.API_KEY"
-    android:value="AIzaSy.........................." />
-```
+    android:value="AIzaSy.........................."/>
 
-✅ Add:
-
-```xml
+<!-- ✅ ADD this -->
 <meta-data
     android:name="com.google.android.geo.API_KEY"
-    android:value="${GOOGLE_MAPS_SDK_KEY}" />
-```
+    android:value="${GOOGLE_MAPS_SDK_KEY}"/>
 
----
+Step 4 — iOS: Add the Key in Xcode
 
-# 🍎 iOS Setup
+This is the iOS equivalent of your .env file. The key lives only inside Xcode — never in any file pushed to Git.
 
-## 🛠 Add User-Defined Setting in Xcode
+Open your project
+Open Xcode → Runner.xcworkspace
+(Always open .xcworkspace, never .xcodeproj)
+Add the key as a User-Defined Setting
+Left sidebar
+└── Click the Runner project (top-level blue icon)
 
-Open:
+Under TARGETS
+└── Click Runner
 
-```text
-ios/Runner.xcworkspace
-```
+Click the "Build Settings" tab
 
-Go to:
+At the top of Build Settings
+└── Select "All" and "Combined"
 
-```text
-Runner
- └── TARGETS
-      └── Runner
-           └── Build Settings
-```
+Click the "+" button (top-left of the Build Settings list)
+└── Choose "Add User-Defined Setting"
 
-Then:
+A new row appears at the bottom under "User-Defined"
+└── Type the name exactly: GOOGLE_MAPS_SDK_KEY
+└── Press Enter
 
-- Select **All**
-- Select **Combined**
-- Click **+**
-- Choose **Add User-Defined Setting**
+Click the arrow (▶) on the left of the row to expand it
+└── Set the value for each configuration:
+    Debug   → AIzaSy..........................
+    Profile → AIzaSy..........................
+    Release → AIzaSy..........................
 
-Add:
+Press Cmd+S to save
 
-```text
-GOOGLE_MAPS_SDK_KEY
-```
+✅ Now $(GOOGLE_MAPS_SDK_KEY) in Info.plist automatically resolves at build time for all configurations.
 
-Set values for:
 
-```text
-Debug
-Profile
-Release
-```
-
----
-
-## 📄 `Info.plist`
-
-❌ Remove:
-
-```xml
+Step 5 — iOS: Info.plist
+Replace the hardcoded key:
+xml<!-- ❌ REMOVE this -->
 <key>GMSApiKey</key>
 <string>AIzaSy..........................</string>
-```
 
-✅ Add:
-
-```xml
+<!-- ✅ ADD this — resolves from Xcode Build Settings at build time -->
 <key>GMSApiKey</key>
 <string>$(GOOGLE_MAPS_SDK_KEY)</string>
-```
 
----
-
-## 🚀 `AppDelegate.swift`
-
-```swift
-import Flutter
+Step 6 — iOS: AppDelegate.swift
+Replace the hardcoded key with a secure read from Info.plist:
+swiftimport Flutter
 import UIKit
 import GoogleMaps
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
-
-    if let mapsApiKey = Bundle.main.object(
-      forInfoDictionaryKey: "GMSApiKey"
-    ) as? String {
-
-      GMSServices.provideAPIKey(mapsApiKey)
+    override func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        // Key is read from Info.plist which resolves $(GOOGLE_MAPS_SDK_KEY)
+        // from Xcode Build Settings — never hardcoded here
+        if let mapsApiKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String {
+            GMSServices.provideAPIKey(mapsApiKey)
+        }
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
-    return super.application(
-      application,
-      didFinishLaunchingWithOptions: launchOptions
-    )
-  }
-
-  func didInitializeImplicitFlutterEngine(
-    _ engineBridge: FlutterImplicitEngineBridge
-  ) {
-    GeneratedPluginRegistrant.register(
-      with: engineBridge.pluginRegistry
-    )
-  }
+    func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+        GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    }
 }
-```
 
----
-
-# ⚙️ GitHub Actions CI/CD
-
-## 🔑 Add GitHub Secret
-
-Go to:
-
-```text
-GitHub Repo
- └── Settings
-      └── Secrets and variables
-           └── Actions
-```
-
-Create:
-
-```text
-GOOGLE_MAPS_SDK_KEY
-```
-
----
-
-## 🤖 Android Workflow
-
-```yaml
-- name: Inject Maps API Key into .env
-  run: echo "GOOGLE_MAPS_SDK_KEY=${{ secrets.GOOGLE_MAPS_SDK_KEY }}" >> .env
-```
-
----
-
-## 🍎 iOS Workflow
-
-```yaml
-- name: Inject Maps API Key into Info.plist
-  run: |
-    /usr/libexec/PlistBuddy -c \
-      "Set :GMSApiKey ${{ secrets.GOOGLE_MAPS_SDK_KEY }}" \
-      ios/Runner/Info.plist
-```
-
----
-
-# ✅ Verify Setup
-
-## 🤖 Android
-
-```bash
-flutter clean
+Step 7 — Verify
+Android
+bashflutter clean
 flutter pub get
 flutter run
-```
 
-If the map shows grey tiles:
+🟡 If the map shows grey tiles → the key was not injected.
+Check that the key name in .env is exactly GOOGLE_MAPS_SDK_KEY (case-sensitive).
 
-- Verify `.env` exists
-- Verify key name is exactly:
-
-```text
-GOOGLE_MAPS_SDK_KEY
-```
-
----
-
-## 🍎 iOS
-
-```bash
-flutter clean
+iOS
+bashflutter clean
 flutter pub get
 cd ios && pod install && cd ..
 flutter run
-```
 
-If the app crashes:
+🟡 If the app crashes on launch → verify GOOGLE_MAPS_SDK_KEY exists in Xcode Build Settings under User-Defined for all three configurations (Debug / Profile / Release).
 
-- Verify `GOOGLE_MAPS_SDK_KEY`
-  exists in:
-  - Debug
-  - Profile
-  - Release
 
----
-
-# 🔒 Best Practices
-
-✅ Never hardcode keys  
-✅ Never commit `.env`  
-✅ Use GitHub Secrets in CI/CD  
-✅ Restrict API key in Google Cloud Console  
-✅ Enable only required APIs
-
----
-
-# 🧠 Complete Architecture
-
-## Android
-
-```text
+🗺️ Complete Key Flow Reference
+<details>
+<summary><strong>Android Flow</strong></summary>
 .env
-   ↓
+GOOGLE_MAPS_SDK_KEY=AIzaSy..........................
+          │
+          ▼
 build.gradle.kts
-   ↓
+envProperties.getProperty("GOOGLE_MAPS_SDK_KEY")
+manifestPlaceholders["GOOGLE_MAPS_SDK_KEY"] = ...
+          │
+          ▼
 AndroidManifest.xml
-   ↓
-Google Maps SDK
-```
-
----
-
-## iOS
-
-```text
-Xcode Build Settings
-   ↓
+android:value="${GOOGLE_MAPS_SDK_KEY}"
+          │
+          ▼
+Runtime — Google Maps SDK initializes with the key ✅
+</details>
+<details>
+<summary><strong>iOS Flow</strong></summary>
+Xcode Build Settings → User-Defined
+GOOGLE_MAPS_SDK_KEY = AIzaSy..........................
+          │
+          ▼
 Info.plist
-   ↓
+<string>$(GOOGLE_MAPS_SDK_KEY)</string>
+          │
+          ▼
 AppDelegate.swift
-   ↓
-Google Maps SDK
-```
+Bundle.main.object(forInfoDictionaryKey: "GMSApiKey")
+          │
+          ▼
+GMSServices.provideAPIKey(mapsApiKey)
+          │
+          ▼
+Runtime — Google Maps SDK initializes with the key ✅
+</details>
 
----
-
-# ❤️ Result
-
-Your Flutter app now uses:
-
-- Secure API key injection
-- Git-safe secrets
-- CI/CD compatible configuration
-- Production-ready Google Maps setup
-
----
+<div align="center">
+Made with ❤️ for Flutter developers who care about security
+</div>
